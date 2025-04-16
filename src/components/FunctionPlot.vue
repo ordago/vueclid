@@ -36,7 +36,7 @@ const props = withDefaults(
 
 let animationFrameID: number | null = null;
 
-const { domain, size, invScale } = useGraphContext();
+const { domain, invScale } = useGraphContext();
 const { parentToWorld } = useMatrices();
 const { parseColor } = useColors();
 
@@ -48,10 +48,8 @@ const functionDomain = computed(() =>
 );
 
 const visiblePoints = computed(() => {
-  const range = Math.abs(functionDomain.value.x - functionDomain.value.y);
-  const step = range / size.value.x;
-  const i = Math.ceil((props.end - functionDomain.value.x) / step);
-  return points.value.slice(0, i);
+  const i = Math.ceil((props.end - functionDomain.value.x) / props.step);
+  return points.value.slice(0, i + 1);
 });
 
 const path = computed(() => {
@@ -72,12 +70,22 @@ const path = computed(() => {
 function updatePoints() {
   const now = Date.now();
   points.value = [];
-  const range = Math.abs(functionDomain.value.x - functionDomain.value.y);
-  const step = range / size.value.x;
-  for (let i = 0; i <= size.value.x; i++) {
-    const x = functionDomain.value.x + i * step;
+  const samples =
+    Math.ceil((functionDomain.value.y - functionDomain.value.x) / props.step) +
+    1;
+  for (let i = 0; i < samples; i++) {
+    let x: number;
+
+    // special case handling for the last point to account for
+    // floating point precision issues
+    if (i === samples - 1) {
+      x = functionDomain.value.y;
+    } else {
+      x = functionDomain.value.x + i * props.step;
+    }
+
     const y = props.function(x, now);
-    points.value.push(new Vector2(x, -y));
+    points.value.push(new Vector2(x, y));
   }
 }
 
